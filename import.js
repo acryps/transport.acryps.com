@@ -13,7 +13,16 @@ if (!existsSync(base)) {
 	throw new Error(`GTFS source directory '${base}' not found`);
 }
 
-console.log(`importing ${base}`);
+const left = +process.argv[3];
+const top = +process.argv[4];
+const right = +process.argv[5];
+const bottom = +process.argv[6];
+
+if (!left || !top || !right || !bottom) {
+	throw new Error(`Not all bounds set`);
+}
+
+console.log(`importing ${base} in ${left} ${top} ${right} ${bottom}`);
 
 let whiz = createWriteStream('graph.dot');
 whiz.write('digraph G {\n');
@@ -37,13 +46,15 @@ stopParser.on('readable', async () => {
 		const x = +source[4];
 		const y = +source[5];
 
-		console.log(id, name, x, y);
+		if (x > left && x < right && y > top && y < bottom) {
+			console.log(id, name, x, y);
 
-		if (!(id in stops)) {
-			whiz.write(`\tn_${id}[label=${JSON.stringify(name)}];\n`);
-			stops[id] = { id, name, x, y };
+			if (!(id in stops)) {
+				whiz.write(`\tn_${id}[label=${JSON.stringify(name)}];\n`);
+				stops[id] = { id, name, x, y };
 
-			await pool.connect().then(client => client.query('INSERT INTO station (name, source_id, x, y) VALUES ($1, $2, $3, $4)', [name, id, x, y]).then(() => client.release()));
+				await pool.connect().then(client => client.query('INSERT INTO station (name, source_id, x, y) VALUES ($1, $2, $3, $4)', [name, id, x, y]).then(() => client.release()));
+			}
 		}
 	}
 });
@@ -75,6 +86,23 @@ createReadStream(join(base, 'stops.txt')).pipe(stopParser);
 
 stopParser.on('end', () => {
 	tripParser.on('end', async () => {
+		console.log('limiting calculation area...');
+		// delete irrelevant trips
+		for (let trip in trips) {
+			if (!trips[trip].find(stop => stop.stop in stops)) {
+				delete trips[trip];
+
+				continue;
+			}
+
+			// delete one stop trips
+			if (trips[trip].length == 1) {
+				delete trips[trip];
+
+				continue;
+			}
+		}
+
 		console.log('connecting lines...');
 		const connections = [];
 
