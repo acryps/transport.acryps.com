@@ -1,9 +1,17 @@
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream, existsSync } from 'fs';
 import { parse } from 'csv-parse';
 import { join } from 'path';
 import postgresql from 'pg';
 
-const base = process.env.SOURCE;
+const base = process.argv[2];
+
+if (!base) {
+	throw new Error('No GTFS source directory set');
+}
+
+if (!existsSync(base)) {
+	throw new Error(`GTFS source directory '${base}' not found`);
+}
 
 console.log(`importing ${base}`);
 

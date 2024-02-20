@@ -24,7 +24,9 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 
 	// find route
 	const path = route(startStation.item, endStation.item, stations, connections);
-	console.log('route', path);
+
+	// just walk if it is faster anyways
+	const walkingTime = startPosition.distance(endPosition) / walkingSpeed;
 
 	if (path) {
 		let last = path[0];
@@ -42,23 +44,37 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 		// add start and end walking distances
 		time += startStation.distance / walkingSpeed;
 		time += endStation.distance / walkingSpeed;
+
+		if (walkingTime < time) {
+			response.json({
+				walk: walkingTime
+			});
+		} else {
+			response.json({
+				start: {
+					name: startStation.item.name,
+					latitude: startStation.item.x,
+					longitude: startStation.item.y,
+					distance: startStation.distance,
+					walk: startStation.distance / walkingSpeed
+				},
+
+				end: {
+					name: endStation.item.name,
+					latitude: endStation.item.x,
+					longitude: endStation.item.y,
+					distance: endStation.distance,
+					walk: endStation.distance / walkingSpeed
+				},
+
+				time
+			});
+		}
 	} else {
-		time = Infinity;
+		response.json({
+			walk: walkingTime
+		});
 	}
-
-	// just walk if it is faster anyways
-	const walkingTime = startPosition.distance(endPosition) / walkingSpeed;
-
-	if (walkingTime < time) {
-		time = walkingTime;
-	}
-
-	response.json({
-		start: startStation,
-		end: endStation,
-
-		time
-	});
 });
 
 server.listen(process.env.PORT ?? 4411, async () => {
