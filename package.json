@@ -12,13 +12,7 @@
 		"pgpassword": "Database Password",
 		"source": "Source Directory",
 		"walkingSpeed": "Walking Speed (m/s)",
-		"interchangeFactor": "Interchange Factor (x)",
-		"boundingArea": {
-			"left": "Bounds Left",
-			"top": "Bounds Top",
-			"right": "Bounds Right",
-			"bottom": "Bounds Bottom"
-		}
+		"interchangeFactor": "Interchange Factor (x)"
 	},
 	"dependencies": {
 		"csv-parse": "^5.5.3",
