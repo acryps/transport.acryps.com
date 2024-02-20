@@ -35,7 +35,6 @@ export function route(startNode, endNode, stations, connections) {
 
 	while (!priorityQueue.isEmpty()) {
 		const currentNode = priorityQueue.dequeue();
-		console.log('>', currentNode.name)
 
 		if (currentNode == endNode) {
 			// Reconstruct the path from endNode to startNode
