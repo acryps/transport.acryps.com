@@ -21,8 +21,8 @@ const stopParser = parse();
 const pool = new postgresql.Pool();
 
 console.log('clearing data...');
-await pool.connect().then(client => client.query('DELETE FROM station').then(() => client.release()));
 await pool.connect().then(client => client.query('DELETE FROM connection').then(() => client.release()));
+await pool.connect().then(client => client.query('DELETE FROM station').then(() => client.release()));
 
 stopParser.on('readable', async () => {
 	let source;
@@ -102,12 +102,16 @@ stopParser.on('end', () => {
 					const existing = connections.find(connection => connection.start == last.stop && connection.end == next.stop);
 					const time = next.departure - last.departure;
 
-					connections.push({ 
-						start: last.stop,
-						end: next.stop,
-						
-						time
-					});
+					if (existing) {
+						existing.time = Math.min(time, existing.time);
+					} else {
+						connections.push({ 
+							start: last.stop,
+							end: next.stop,
+							
+							time
+						});
+					}
 				}
 
 				last = next;

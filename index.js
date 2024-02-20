@@ -11,6 +11,7 @@ let connections = [];
 
 const server = express();
 const walkingSpeed = +process.env.WALKING_SPEED;
+const interchangeFactor = +process.env.INTERCHANGE_FACTOR;
 
 server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (request, response) => {
 	const startPosition = new Point(+request.params.startLatitude, +request.params.startLongitude);
@@ -26,10 +27,6 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 	console.log('route', path);
 
 	if (path) {
-		// add start and end walking distances
-		time += startStation.distance / walkingSpeed;
-		time += endStation.distance / walkingSpeed;
-
 		let last = path[0];
 
 		for (let next of path.slice(1)) {
@@ -38,6 +35,13 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 
 			last = next;
 		}
+
+		// add some time for interchanges between routes, which are ignored by our algorithm
+		time *= interchangeFactor;
+
+		// add start and end walking distances
+		time += startStation.distance / walkingSpeed;
+		time += endStation.distance / walkingSpeed;
 	} else {
 		time = Infinity;
 	}
