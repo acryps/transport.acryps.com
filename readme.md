@@ -37,4 +37,12 @@ The request will return the starting station, end station and an approximated tr
 ```
 
 ## Importing Data
-The data can be imported by running `npm run import <path to GTFS directory>`
+The data can be imported by running the following command.
+Only stations and connections within the bounds will be imported.
+
+All data will be deleted before the import.
+A graphviz dot file will be generated to check for issues in the GTFS source.
+
+```
+npm run import <path to GTFS directory> <bounds left> <top> <right> <bottom>
+```

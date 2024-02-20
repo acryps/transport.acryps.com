@@ -3,7 +3,7 @@
 	"type": "module",
 	"scripts": {
 		"start": "environment node index.js",
-		"import": "environment node import.js && dot -T svg graph.dot -o graph.svg"
+		"import": "environment node import.js"
 	},
 	"environment": {
 		"pghost": "Database Host",
