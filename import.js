@@ -21,8 +21,8 @@ const stopParser = parse();
 const pool = new postgresql.Pool();
 
 console.log('clearing data...');
-await pool.connect().then(client => client.query('DELETE FROM connection').then(() => client.release()));
 await pool.connect().then(client => client.query('DELETE FROM station').then(() => client.release()));
+await pool.connect().then(client => client.query('DELETE FROM connection').then(() => client.release()));
 
 stopParser.on('readable', async () => {
 	let source;
@@ -94,19 +94,19 @@ stopParser.on('end', () => {
 		console.log('connecting lines...');
 		const connections = [];
 
-		for (let trip in trips) {
+		for (let trip of Object.keys(trips)) {
 			let last = trips[trip][0];
 
 			for (let next of trips[trip].slice(1)) {
 				if (next.stop != last.stop) {
+					const existing = connections.find(connection => connection.start == last.stop && connection.end == next.stop);
 					const time = next.departure - last.departure;
 
 					connections.push({ 
 						start: last.stop,
 						end: next.stop,
 						
-						time,
-						route: trip
+						time
 					});
 				}
 
@@ -117,7 +117,7 @@ stopParser.on('end', () => {
 		for (let connection of connections) {
 			whiz.write(`\tn_${connection.start} -> n_${connection.end}[label="${connection.time}S"];\n`);
 
-			await pool.connect().then(client => client.query('INSERT INTO connection (duration, route, start_id, end_id) VALUES ($1, $2, (SELECT id FROM station WHERE source_id = $3), (SELECT id FROM station WHERE source_id = $4))', [connection.time, connection.route, connection.start, connection.end]).then(() => client.release()));
+			await pool.connect().then(client => client.query('INSERT INTO connection (duration, start_id, end_id) VALUES ($1, (SELECT id FROM station WHERE source_id = $2), (SELECT id FROM station WHERE source_id = $3))', [connection.time, connection.start, connection.end]).then(() => client.release()));
 		}
 
 		whiz.write('}');

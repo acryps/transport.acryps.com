@@ -1,81 +1,3 @@
-export class Graph {
-	constructor() {
-		this.map = new Map();
-	}
-
-	addStation(station) {
-		if (this.map.has(station)) {
-			return;
-		}
-
-		this.map.set(station, []);
-	}
-
-	addWaypoint(station, route) {
-		for (let waypoint of this.map.keys()) {
-			if (waypoint.station == station && waypoint.route == route) {
-				this.map.get(station).push({ node: waypoint, weight: 10 });
-				
-				return waypoint;
-			}
-		}
-
-		const waypoint = { station, route };
-		this.map.set(waypoint, [{ node: station, weight: 10 }]);
-		this.map.get(station).push({ node: waypoint, weight: 10 });
-
-		return waypoint;
-	}
-
-	addConnection(start, end, route, weight) {
-		this.map.get(this.addWaypoint(start, route)).push({ node: end, weight });
-		this.map.get(this.addWaypoint(end, route)).push({ node: start, weight });
-	}
-
-	route(startNode, endNode) {
-		const distances = new Map();
-		const previous = new Map();
-		const priorityQueue = new PriorityQueue();
-
-		// Initialize distances and priority queue
-		for (const node of this.map.keys()) {
-			distances.set(node, node === startNode ? 0 : Infinity);
-			priorityQueue.enqueue(node, distances.get(node));
-			previous.set(node, null);
-		}
-
-		while (!priorityQueue.isEmpty()) {
-			const currentNode = priorityQueue.dequeue();
-
-			if (currentNode == endNode) {
-				const path = [];
-				let current = endNode;
-
-				while (current !== null) {
-					path.unshift(current);
-					current = previous.get(current);
-				}
-
-				return path;
-			}
-
-			const neighbors = this.map.get(currentNode);
-
-			for (const neighbor of neighbors) {
-				const newDistance = distances.get(currentNode) + neighbor.weight;
-				
-				if (newDistance < distances.get(neighbor.node)) {
-					distances.set(neighbor.node, newDistance);
-					previous.set(neighbor.node, currentNode);
-					priorityQueue.enqueue(neighbor.node, newDistance);
-				}
-			}
-		}
-
-		return null;
-	}
-}
-
 class PriorityQueue {
 	constructor() {
 		this.items = [];
@@ -93,4 +15,54 @@ class PriorityQueue {
 	isEmpty() {
 		return !this.items.length;
 	}
+}
+
+export function route(startNode, endNode, stations, connections) {
+	const distances = new Map();
+	const previous = new Map();
+
+	const priorityQueue = new PriorityQueue();
+
+	// Initialize distances and priority queue
+	for (let node of stations) {
+		const distance = node == startNode ? 0 : Infinity;
+
+		distances.set(node, distance);
+		previous.set(node, null);
+
+		priorityQueue.enqueue(node, distance);
+	}
+
+	while (!priorityQueue.isEmpty()) {
+		const currentNode = priorityQueue.dequeue();
+		console.log('>', currentNode.name)
+
+		if (currentNode == endNode) {
+			// Reconstruct the path from endNode to startNode
+			const path = [];
+			let current = endNode;
+
+			while (current) {
+				path.unshift(current);
+				current = previous.get(current);
+			}
+
+			return path;
+		}
+
+		const routes = connections.filter(connection => connection.start == currentNode);
+
+		for (const route of routes) {
+			const fullDuration = distances.get(currentNode) + route.duration;
+
+			if (fullDuration < distances.get(route.end)) {
+				distances.set(route.end, fullDuration);
+				previous.set(route.end, currentNode);
+
+				priorityQueue.enqueue(route.end, fullDuration);
+			}
+		}
+	}
+
+	return null; // No path found
 }
