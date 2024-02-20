@@ -15,9 +15,15 @@ const interchangeFactor = +process.env.INTERCHANGE_FACTOR;
 
 server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (request, response) => {
 	const startPosition = new Point(+request.params.startLatitude, +request.params.startLongitude);
-	const startStation = startPosition.nearest(stations, station => new Point(station.x, station.y));
-
 	const endPosition = new Point(+request.params.endLatitude, +request.params.endLongitude);
+
+	if (startPosition.distance(endPosition) == 0) {
+		return response.json({
+			walk: 0
+		});
+	}
+
+	const startStation = startPosition.nearest(stations, station => new Point(station.x, station.y));
 	const endStation = endPosition.nearest(stations, station => new Point(station.x, station.y));
 
 	let time = 0;
@@ -46,35 +52,35 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 		time += endStation.distance / walkingSpeed;
 
 		if (walkingTime < time) {
-			response.json({
+			return response.json({
 				walk: walkingTime
 			});
-		} else {
-			response.json({
-				start: {
-					name: startStation.item.name,
-					latitude: startStation.item.x,
-					longitude: startStation.item.y,
-					distance: startStation.distance,
-					walk: startStation.distance / walkingSpeed
-				},
-
-				end: {
-					name: endStation.item.name,
-					latitude: endStation.item.x,
-					longitude: endStation.item.y,
-					distance: endStation.distance,
-					walk: endStation.distance / walkingSpeed
-				},
-
-				time
-			});
 		}
-	} else {
-		response.json({
-			walk: walkingTime
+
+		return response.json({
+			start: {
+				name: startStation.item.name,
+				latitude: startStation.item.x,
+				longitude: startStation.item.y,
+				distance: startStation.distance,
+				walk: startStation.distance / walkingSpeed
+			},
+
+			end: {
+				name: endStation.item.name,
+				latitude: endStation.item.x,
+				longitude: endStation.item.y,
+				distance: endStation.distance,
+				walk: endStation.distance / walkingSpeed
+			},
+
+			time
 		});
 	}
+	
+	response.json({
+		walk: walkingTime
+	});
 });
 
 server.listen(process.env.PORT ?? 4411, async () => {
