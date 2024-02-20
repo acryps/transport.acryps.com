@@ -5,6 +5,7 @@ CREATE TABLE station (
 	source_id TEXT,
 
 	name TEXT,
+	route TEXT,
 
 	x REAL,
 	y REAL

@@ -1,13 +1,15 @@
 import postgresql from 'pg';
+import QueryStream from 'pg-query-stream';
 import express from 'express';
 
 import { Point } from './point.js';
-import { route } from './path.js';
+import { Graph } from './path.js';
 
 const database = new postgresql.Client();
 
 let stations = [];
-let connections = [];
+
+const graph = new Graph();
 
 const server = express();
 const walkingSpeed = +process.env.WALKING_SPEED;
@@ -22,7 +24,7 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 	let time = 0;
 
 	// find route
-	const path = route(startStation.item, endStation.item, stations, connections);
+	const path = graph.route(startStation.item, endStation.item);
 	console.log('route', path);
 
 	if (path) {
@@ -30,14 +32,16 @@ server.get('/:startLatitude/:startLongitude/:endLatitude/:endLongitude', (reques
 		time += startStation.distance / walkingSpeed;
 		time += endStation.distance / walkingSpeed;
 
-		let last = path[0];
+		/*let last = path[0];
 
 		for (let next of path.slice(1)) {
 			const connection = connections.find(connection => connection.start == last && connection.end == next);
 			time += connection.duration;
 
 			last = next;
-		}
+		}*/
+
+		console.log(path);
 	} else {
 		time = Infinity;
 	}
@@ -65,17 +69,24 @@ server.listen(process.env.PORT ?? 4411, async () => {
 	stations = await database.query('SELECT * FROM station').then(response => response.rows);
 
 	console.log('loading connections...');
-	connections = await database.query('SELECT * FROM connection WHERE start_id IS NOT NULL AND end_id IS NOT NULL').then(response => response.rows);
+	const stream = await database.query(new QueryStream('SELECT * FROM connection WHERE start_id IS NOT NULL AND end_id IS NOT NULL AND route LIKE \'%:1\''));
 
-	for (let connection of [...connections]) {
+	const nameNode = (station, route) => `${station.id}-${route}`;
+
+	stream.on('data', connection => {
 		// link stations
-		connection.start = stations.find(station => station.id == connection.start_id);
-		connection.end = stations.find(station => station.id == connection.end_id);
+		const start = stations.find(station => station.id == connection.start_id);
+		const end = stations.find(station => station.id == connection.end_id);
+
+		graph.addStation(start);
+		graph.addStation(end);
+
+		graph.addConnection(start, end, connection.route, connection.duration);
 
 		// add an inverted connection as a backup
 		// make it way slower, as some connections take longer on their propert way back
-		connections.push({ start: connection.end, end: connection.start, duration: connection.duration * 1.5 });
-	}
+		graph.addConnection(end, start, connection.duration * 1.5);
+	});
 
 	console.log('server started');
 });
