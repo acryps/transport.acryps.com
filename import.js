@@ -5,7 +5,7 @@ import postgresql from 'pg';
 
 const base = process.env.SOURCE;
 
-console.log(`importing ${base} in ${left} ${top} ${right} ${bottom}`);
+console.log(`importing ${base}`);
 
 let whiz = createWriteStream('graph.dot');
 whiz.write('digraph G {\n');
